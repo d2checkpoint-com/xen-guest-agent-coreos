@@ -41,23 +41,29 @@ jobs:
           echo "Downloading artifacts from $ARTIFACTS_API"
           curl -L --header "PRIVATE-TOKEN: $ACCESS_TOKEN" "$ARTIFACTS_API" --output artifacts.zip
           echo "Artifacts downloaded as artifacts.zip"
-          
+
+          # Unzip artifacts.zip to get xen-guest-agent
+          unzip artifacts.zip -d extracted-artifacts
+          mkdir -p usr/sbin
+          mv extracted-artifacts/target/release/xen-guest-agent usr/sbin/
+          chmod +x usr/sbin/xen-guest-agent
+
           # Process for CoreOS
-          mkdir -p xen-guest-agent-coreos
-          unzip artifacts.zip -d xen-guest-agent-coreos
+          mkdir -p xen-guest-agent-coreos/usr
+          cp -r usr/* xen-guest-agent-coreos/usr/
           rm -f xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.flatcar-linux
           mv xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.coreos xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.xen-guest-agent
           mksquashfs xen-guest-agent-coreos xen-guest-agent-coreos.raw -comp xz -noappend
           echo "CoreOS squashfs created"
 
           # Process for Flatcar
-          mkdir -p xen-guest-agent-flatcar
-          unzip artifacts.zip -d xen-guest-agent-flatcar
+          mkdir -p xen-guest-agent-flatcar/usr
+          cp -r usr/* xen-guest-agent-flatcar/usr/
           rm -f xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.coreos
           mv xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.flatcar-linux xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.xen-guest-agent
           mksquashfs xen-guest-agent-flatcar xen-guest-agent-flatcar.raw -comp xz -noappend
           echo "Flatcar squashfs created"
-          
+
       - name: Upload CoreOS Squashfs as Artifact
         uses: actions/upload-artifact@v2
         with:
