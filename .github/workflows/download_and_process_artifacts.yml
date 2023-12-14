@@ -42,16 +42,18 @@ jobs:
           curl -L --header "PRIVATE-TOKEN: $ACCESS_TOKEN" "$ARTIFACTS_API" --output artifacts.zip
           echo "Artifacts downloaded as artifacts.zip"
           
-          mkdir -p xen-guest-agent/usr/sbin
-          unzip artifacts.zip -d xen-guest-agent
-          mv xen-guest-agent/target/release/xen-guest-agent xen-guest-agent/usr/sbin/
-          chmod +x xen-guest-agent/usr/sbin/xen-guest-agent
-          sudo chown -R root:root xen-guest-agent
+          mkdir -p usr/sbin
+          unzip artifacts.zip -d temp
+          mv temp/target/release/xen-guest-agent usr/sbin/
+          chmod +x usr/sbin/xen-guest-agent
+          rm -rf temp
           
-          mksquashfs xen-guest-agent xen-guest-agent.raw -comp xz -noappend
+          mksquashfs . xen-guest-agent.raw -comp xz -noappend
+          sudo chown -R root:root xen-guest-agent.raw
           
       - name: Upload Squashfs as Artifact
         uses: actions/upload-artifact@v2
         with:
           name: xen-guest-agent
           path: xen-guest-agent.raw
+
