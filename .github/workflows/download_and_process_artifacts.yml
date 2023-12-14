@@ -53,7 +53,7 @@ jobs:
           cp -r usr/* xen-guest-agent-coreos/usr/
           rm -f xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.flatcar-linux
           mv xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.coreos xen-guest-agent-coreos/usr/lib/extension-release.d/extension-release.xen-guest-agent
-          mksquashfs xen-guest-agent-coreos xen-guest-agent-coreos.raw -comp xz -noappend
+          mksquashfs xen-guest-agent-coreos xen-guest-agent-coreos.raw -noappend
           echo "CoreOS squashfs created"
 
           # Process for Flatcar
@@ -61,7 +61,7 @@ jobs:
           cp -r usr/* xen-guest-agent-flatcar/usr/
           rm -f xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.coreos
           mv xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.flatcar-linux xen-guest-agent-flatcar/usr/lib/extension-release.d/extension-release.xen-guest-agent
-          mksquashfs xen-guest-agent-flatcar xen-guest-agent-flatcar.raw -comp xz -noappend
+          mksquashfs xen-guest-agent-flatcar xen-guest-agent-flatcar.raw -noappend
           echo "Flatcar squashfs created"
 
       - name: Upload CoreOS Squashfs as Artifact
