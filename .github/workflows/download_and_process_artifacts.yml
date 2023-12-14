@@ -1,0 +1,57 @@
+name: Download and Process Artifacts
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs at 00:00 UTC daily
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up jq
+        run: sudo apt-get install jq
+
+      - name: Download and Process Artifacts from GitLab
+        env:
+          ACCESS_TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+          PROJECT_ID: xen-project%2Fxen-guest-agent
+          JOB_NAME: build-release-linux-x86_64
+        run: |
+          set -e
+          JOBS_API="https://gitlab.com/api/v4/projects/$PROJECT_ID/jobs?scope[]=success"
+          
+          echo "Fetching job list from $JOBS_API"
+          JOBS_RESPONSE=$(curl --silent --header "PRIVATE-TOKEN: $ACCESS_TOKEN" "$JOBS_API")
+          
+          LATEST_JOB_ID=$(echo "$JOBS_RESPONSE" | jq -r "[.[] | select(.name==\"$JOB_NAME\" and .status==\"success\") | {id: .id, created_at: .created_at}] | sort_by(.created_at) | last | .id")
+          
+          if [ -z "$LATEST_JOB_ID" ] || [ "$LATEST_JOB_ID" == "null" ]; then
+              echo "No valid job found. Exiting."
+              exit 1
+          fi
+          
+          echo "Found latest successful job ID: $LATEST_JOB_ID"
+          
+          ARTIFACTS_API="https://gitlab.com/api/v4/projects/$PROJECT_ID/jobs/$LATEST_JOB_ID/artifacts"
+          echo "Downloading artifacts from $ARTIFACTS_API"
+          curl -L --header "PRIVATE-TOKEN: $ACCESS_TOKEN" "$ARTIFACTS_API" --output artifacts.zip
+          echo "Artifacts downloaded as artifacts.zip"
+          
+          mkdir -p xen-guest-agent/usr/sbin
+          unzip artifacts.zip -d xen-guest-agent
+          mv xen-guest-agent/target/release/xen-guest-agent xen-guest-agent/usr/sbin/
+          chmod +x xen-guest-agent/usr/sbin/xen-guest-agent
+          sudo chown -R root:root xen-guest-agent
+          
+          mksquashfs xen-guest-agent xen-guest-agent.raw -comp xz -noappend
+          
+      - name: Upload Squashfs as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: xen-guest-agent
+          path: xen-guest-agent.raw
